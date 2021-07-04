@@ -3,12 +3,14 @@ const ErrorResponse = require('../Utils/errorResponse');
 const path = require('path');
 const User = require('../models/User');
 const Post = require('../models/Posts');
+const {sendEmail} = require('../Utils/email')
+const crypto = require("crypto")
 
 module.exports.dashBoard_Get = async function (req, res, next) {
-  const usersDashboard = await User.findById(req.user.id);
+  const usersDashboard = await User.findById(req.user.id).select('+password');
 
   res.status(200).json({
-    success: true,
+    success: true, 
     data: usersDashboard,
   });
 };
@@ -23,6 +25,21 @@ module.exports.getMyPosts = async function (req, res, next) {
   } catch (err) {
     next(err);
   }
+};
+
+//Get token from model, create cookie and send ErrorResponse
+const sendTokenResponse = (user, statusCode, res) => {
+  const token = user.getSignedjwtToken();
+
+  let options = {
+    expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    httpOnly: true,
+  };
+
+  res
+    .status(statusCode)
+    .cookie('jwt', token, options)
+    .json({ success: true, token });
 };
 
 module.exports.signup_post = async (req, res, next) => {
@@ -54,20 +71,6 @@ module.exports.login_post = async (req, res, next) => {
   if (!isMatch) {
     return next(new ErrorResponse('Uhh-Ohh, Invalid password'));
   }
-  //Get token from model, create cookie and send ErrorResponse
-  const sendTokenResponse = (user, statusCode, res) => {
-    const token = user.getSignedjwtToken();
-
-    let options = {
-      expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      httpOnly: true,
-    };
-
-    res
-      .status(statusCode)
-      .cookie('jwt', token, options)
-      .json({ success: true, token });
-  };
 
   sendTokenResponse(user, 200, res);
 };
@@ -137,15 +140,56 @@ module.exports.forgotPassword = async (req, res, next) => {
   //2. Generate random reset token
   const resetToken = user.getResetPasswordToken();
   console.log(resetToken);
-  //Add the the resetToken to the database as a value of the resetPasswordToken field
-await user.save({validateBeforeSave: false})
+  
+  await user.save({ validateBeforeSave: false })
+
+  //Create Reset URL
+  const resetURL = `${ req.protocol }://${ req.get('host') }/reset-password/${ resetToken }`
+  
+  const message = `You are recieving this email because you requested to reset your password reset your password using this link: \n\n ${resetURL}`
+  try {
+    await sendEmail({
+      email: user.email,
+      subject: 'Password reset magic link',
+      message
+    })
+    res.status(200).json({
+      success: true,
+      data: 'An email has been sent to the enteredemail, kindly check your inbox to officially reset your password', user
+    });
+    
+  } catch (err) {
+    console.log(err);
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+
+    return next(new ErrorResponse('Email could not be sent', 500))
+  }
+  await user.save({validateBeforeSave: false})
+};
+ 
+module.exports.resetPassword = async(req, res, next) => {
+  //get hashed token
+  const resetPasswordToken = crypto.createHash('sha256').update(req.params.resetToken).digest('hex');
+
+  const user = await User.findOne({
+    resetPasswordToken,
+    resetPasswordExpire: {$gt: Date.now()}
+  });
+
+  if (!user) {
+    return next(new ErrorResponse("Invalid token", 400))
+  }
+
+  user.password = req.body.password
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpire = undefined;
+
+  await user.save();
+  sendTokenResponse(user, 200, res)
+
   res.status(200).json({
-    success: true,
+    success: true, 
     data: user,
   });
-};
-
-module.exports.resetPassword = (req, res, next) => {
-  
 }
-
