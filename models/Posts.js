@@ -40,7 +40,6 @@ const postSchema = new Schema({
 postSchema.post('save', function (next) {
   this.slug = slugify(this.name, { lower: true });
   console.log(this.slug);
-  next();
 });
 
 const Post = mongoose.model('Post', postSchema);

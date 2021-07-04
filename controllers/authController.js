@@ -193,3 +193,37 @@ module.exports.resetPassword = async(req, res, next) => {
     data: user,
   });
 }
+
+module.exports.updateUserDetails = async (req, res, next) => {
+  const updateFields = {
+    name: req.body.name,
+    email: req.body.email,
+  }
+  const user = await User.findByIdAndUpdate(req.user.id, updateFields, {
+    new: true,
+    runValidators: true
+  });
+
+  res.status(200).json({
+    success: true,
+    data: user
+  })
+
+}
+
+module.exports.updatePassword = async (req, res, next) => {
+  const user = await User.findById(req.user.id).select('+password')
+
+  if (!(await user.matchPassword(req.body.currentPassword))) {
+    return next( new ErrorResponse('Your current password entered doesnt match the one in the database'))
+  }
+
+  await user.findByIdAndUpdate(req.user.id, req.body.password, {
+    new: true,
+    runValidators: true
+  })
+  res.status(200).json({
+    success: true,
+    data: user
+  })
+}

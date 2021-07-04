@@ -131,7 +131,7 @@ module.exports.updatePost = async (req, res, next) => {
       );
     }
 
-    post = await Post.findByOneAndUpdate(req.params.id, req.body, {
+    post = await Post.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true,
     });

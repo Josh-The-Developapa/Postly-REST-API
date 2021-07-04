@@ -8,7 +8,9 @@ const {
   signup_post,
   updateProfile_Photo,
   forgotPassword,
-  resetPassword 
+  resetPassword,
+  updateUserDetails,
+  updatePassword
 } = require('../controllers/authController');
 const { requireAuth } = require('../middleware/auth');
 
@@ -28,5 +30,9 @@ router.post('/profile-photo', requireAuth, updateProfile_Photo);
 router.post('/forgot-password', forgotPassword);
 
 router.put('/reset-password/:resetToken', resetPassword);
+
+router.put('/update-details', requireAuth, updateUserDetails)
+
+router.put('/update-password', requireAuth, updatePassword)
 
 module.exports = router;
