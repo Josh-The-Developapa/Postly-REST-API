@@ -3,14 +3,14 @@ const ErrorResponse = require('../Utils/errorResponse');
 const path = require('path');
 const User = require('../models/User');
 const Post = require('../models/Posts');
-const {sendEmail} = require('../Utils/email')
-const crypto = require("crypto")
+const { sendEmail } = require('../Utils/email');
+const crypto = require('crypto');
 
 module.exports.dashBoard_Get = async function (req, res, next) {
   const usersDashboard = await User.findById(req.user.id).select('+password');
 
   res.status(200).json({
-    success: true, 
+    success: true,
     data: usersDashboard,
   });
 };
@@ -140,90 +140,93 @@ module.exports.forgotPassword = async (req, res, next) => {
   //2. Generate random reset token
   const resetToken = user.getResetPasswordToken();
   console.log(resetToken);
-  
-  await user.save({ validateBeforeSave: false })
+
+  await user.save({ validateBeforeSave: false });
 
   //Create Reset URL
-  const resetURL = `${ req.protocol }://${ req.get('host') }/reset-password/${ resetToken }`
-  
-  const message = `You are recieving this email because you requested to reset your password reset your password using this link: \n\n ${resetURL}`
+  const resetURL = `${req.protocol}://${req.get(
+    'host'
+  )}/reset-password/${resetToken}`;
+
+  const message = `You are recieving this email because you requested to reset your password reset your password using this link: \n\n ${resetURL}`;
   try {
     await sendEmail({
       email: user.email,
       subject: 'Password reset magic link',
-      message
-    })
-    res.status(200).json({
-      success: true,
-      data: 'An email has been sent to the enteredemail, kindly check your inbox to officially reset your password', user
+      message,
     });
-    
   } catch (err) {
     console.log(err);
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
 
-    return next(new ErrorResponse('Email could not be sent', 500))
+    return next(new ErrorResponse('Email could not be sent', 500));
   }
-  await user.save({validateBeforeSave: false})
+  await user.save({ validateBeforeSave: false });
 };
- 
-module.exports.resetPassword = async(req, res, next) => {
+
+module.exports.resetPassword = async (req, res, next) => {
   //get hashed token
-  const resetPasswordToken = crypto.createHash('sha256').update(req.params.resetToken).digest('hex');
+  const resetPasswordToken = crypto
+    .createHash('sha256')
+    .update(req.params.resetToken)
+    .digest('hex');
 
   const user = await User.findOne({
     resetPasswordToken,
-    resetPasswordExpire: {$gt: Date.now()}
+    resetPasswordExpire: { $gt: Date.now() },
   });
 
   if (!user) {
-    return next(new ErrorResponse("Invalid token", 400))
+    return next(new ErrorResponse('Invalid token', 400));
   }
 
-  user.password = req.body.password
+  user.password = req.body.password;
   user.resetPasswordToken = undefined;
   user.resetPasswordExpire = undefined;
 
   await user.save();
-  sendTokenResponse(user, 200, res)
+  sendTokenResponse(user, 200, res);
 
   res.status(200).json({
-    success: true, 
+    success: true,
     data: user,
   });
-}
+};
 
 module.exports.updateUserDetails = async (req, res, next) => {
   const updateFields = {
     name: req.body.name,
     email: req.body.email,
-  }
+  };
   const user = await User.findByIdAndUpdate(req.user.id, updateFields, {
     new: true,
-    runValidators: true
+    runValidators: true,
   });
 
   res.status(200).json({
     success: true,
-    data: user
-  })
-
-}
+    data: user,
+  });
+};
 
 module.exports.updatePassword = async (req, res, next) => {
-  const user = await User.findById(req.user.id).select('+password')
+  const user = await User.findById(req.user.id).select('+password');
 
   if (!(await user.matchPassword(req.body.currentPassword))) {
-    return next( new ErrorResponse('Your current password entered doesnt match the one in the database'))
+    return next(
+      new ErrorResponse(
+        'Your current password entered doesnt match the one in the database'
+      )
+    );
   }
 
   await user.findByIdAndUpdate(req.user.id, req.body.password, {
     new: true,
-    runValidators: true
-  })
+    runValidators: true,
+  });
   res.status(200).json({
     success: true,
-    data: user
-  })
-}
+    data: user,
+  });
+};
