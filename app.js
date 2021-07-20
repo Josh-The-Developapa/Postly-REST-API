@@ -43,3 +43,6 @@ app.use(xss());
 const PORT = process.env.PORT;
 app.listen(PORT);
 console.log('\x1b[33m', `Server active on port ${PORT}`);
+
+const date = new Date('2021-07-20T19:42:37.392Z');
+console.log(date.toLocaleTimeString());

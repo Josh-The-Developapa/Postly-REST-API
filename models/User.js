@@ -21,7 +21,7 @@ const userSchema = new Schema({
   },
   password: {
     type: String,
-    minLength: [8, 'Minimum password length is 8 characters'],
+    minLength: [6, 'Minimum password length is 8 characters'],
     required: [true, 'Please enter a password'],
     select: false,
   },
@@ -73,7 +73,7 @@ userSchema.methods.getResetPasswordToken = function () {
     .update(resetToken)
     .digest('hex');
 
-  this.resetPasswordExpire = Date.now() + 10*60*1000
+  this.resetPasswordExpire = new Date(Date.now() + 30 * 60 * 1000);
 
   return resetToken;
 };

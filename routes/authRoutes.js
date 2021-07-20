@@ -10,7 +10,7 @@ const {
   forgotPassword,
   resetPassword,
   updateUserDetails,
-  updatePassword
+  updatePassword,
 } = require('../controllers/authController');
 const { requireAuth } = require('../middleware/auth');
 
@@ -31,8 +31,8 @@ router.post('/forgot-password', forgotPassword);
 
 router.put('/reset-password/:resetToken', resetPassword);
 
-router.put('/update-details', requireAuth, updateUserDetails)
+router.put('/update-details', requireAuth, updateUserDetails);
 
-router.put('/update-password', requireAuth, updatePassword)
+router.put('/update-password', requireAuth, updatePassword);
 
 module.exports = router;

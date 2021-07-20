@@ -7,7 +7,7 @@ const { sendEmail } = require('../Utils/email');
 const crypto = require('crypto');
 
 module.exports.dashBoard_Get = async function (req, res, next) {
-  const usersDashboard = await User.findById(req.user.id).select('+password');
+  const usersDashboard = await User.findById(req.user);
 
   res.status(200).json({
     success: true,
@@ -17,9 +17,7 @@ module.exports.dashBoard_Get = async function (req, res, next) {
 
 module.exports.getMyPosts = async function (req, res, next) {
   try {
-    req.body.user = req.user.id;
-
-    const usersPosts = await Post.find({ user: req.user.id });
+    const usersPosts = await Post.find({ user: req.user });
 
     res.status(200).json({ success: true, data: usersPosts });
   } catch (err) {
@@ -148,12 +146,20 @@ module.exports.forgotPassword = async (req, res, next) => {
     'host'
   )}/reset-password/${resetToken}`;
 
-  const message = `You are recieving this email because you requested to reset your password reset your password using this link: \n\n ${resetURL}`;
+  const message = `You are recieving this email because you requested to reset your password reset your password using this link: \n\n`;
   try {
     await sendEmail({
       email: user.email,
       subject: 'Password reset magic link',
       message,
+      resetURL,
+    });
+
+    res.json({
+      success: true,
+      message:
+        'You have 30 minutes to reset your password before the link expires',
+      data: user,
     });
   } catch (err) {
     console.log(err);
@@ -190,7 +196,7 @@ module.exports.resetPassword = async (req, res, next) => {
 
   res.status(200).json({
     success: true,
-    data: user,
+    data: 'Password Saved',
   });
 };
 
